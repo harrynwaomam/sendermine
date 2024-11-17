@@ -31,15 +31,11 @@ frommail_file = "frommail.txt"
 fromname_file = "fromname.txt"
 subject_file = "subject.txt"
 link_file = "link.txt"
-unsubscribe_email = config.get("SETTINGS", "list-unsubscribe", fallback="unsubscribe@[[smtpdomain]]").strip()
 reply_to = config.get("SETTINGS", "reply-to", fallback="replyto@[[smtpdomain]]").strip()
-x_mailer = config.get("SETTINGS", "x-mailer", fallback="flockmailey").strip()
 priority = config.getint("SETTINGS", "priority", fallback=1)
 return_path = config.get("SETTINGS", "return-path", fallback="bounce@[[smtpdomain]]").strip()
-feedback_id_template = config.get("SETTINGS", "feedback-id", fallback="[[sender]]:[[domain]]:flockmaileyIdv3").strip()
 boundary_template = config.get("SETTINGS", "boundary", fallback="[[Uchar5]][[random4]][[char9]][[random4]][[Uchar5]][[char6]][[random5]]==").strip()
 msg_id_template = config.get("SETTINGS", "MSG_ID", fallback="[[Uchar5]][[random4]][[Uchar5]][[random4]][[random4]]@[[random4]][[Uchar5]].[[smtpdomain]]").strip()
-x_report_abuse = config.get("SETTINGS", "x-report-abuse", fallback="abuse@[[smtpdomain]]").strip()
 dkim_enabled = config.getboolean("SETTINGS", "SignEmail_With_DKim", fallback=False)
 dkim_folder = "dkim"
 dkim_log_file = "dkimfile.log"
@@ -222,12 +218,8 @@ def dkim_sign_message(msg, sender_email):
             privkey=private_key,
             include_headers=dkim_headers
         )
-        #log_dkim(f"DKIM signature created successfully for {sender_email}.")
-        #print(f"[DKIM] DKIM signature created successfully for {sender_email}.")
         return sig
     except Exception as e:
-        #log_dkim(f"DKIM signing failed for {sender_email}: {e}")
-        #print(f"[DKIM] DKIM signing failed for {sender_email}: {e}")
         return None
 
 # === EMAIL SENDING ===
@@ -251,12 +243,8 @@ def send_email(sender_email, sender_name, recipient_email, subject, body, recipi
         msg["Date"] = formatdate(localtime=True)
         msg["Subject"] = replace_placeholders(subject, recipient_email, sender_email, recipient_index)
         msg["Reply-To"] = replace_placeholders(reply_to, recipient_email, sender_email, recipient_index)
-        msg["X-Mailer"] = x_mailer
         msg["X-Priority"] = str(priority)
         msg["Return-Path"] = replace_placeholders(return_path, recipient_email, sender_email, recipient_index)
-        msg["List-Unsubscribe"] = f"<mailto:{replace_placeholders(unsubscribe_email, recipient_email, sender_email, recipient_index)}>"
-        msg["X-Abuse"] = f"Abuse reports to {replace_placeholders(x_report_abuse, recipient_email, sender_email, recipient_index)}"
-        msg["Feedback-ID"] = replace_placeholders(feedback_id_template, recipient_email, sender_email, recipient_index)
 
         boundary = replace_placeholders(boundary_template, recipient_email, sender_email, recipient_index)
         msg.set_boundary(boundary)

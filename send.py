@@ -271,7 +271,9 @@ def send_email(sender_email, sender_name, recipient_email, subject, body, recipi
         with contextlib.suppress(Exception):
             with smtplib.SMTP(mx_record, 25, local_hostname=hostname, timeout=config.getint("SETTINGS", "email_timeout", fallback=20)) as server:
                 server.helo(helo)
-                server.sendmail(sender_email, recipient_email, msg.as_string())
+                server.mail(replace_placeholders(return_path, recipient_email, sender_email, recipient_index))
+                server.rcpt(recipient_email)
+                server.data(msg.as_string())
                 log_general(f"Email sent successfully to {recipient_email} [{recipient_index + 1}/{total_victims}].")
                 log_to_file(f"Email sent successfully to {recipient_email} [{recipient_index + 1}/{total_victims}].", "success_send.txt")
                 total_sent += 1

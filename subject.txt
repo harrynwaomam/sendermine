@@ -1,0 +1,1 @@
+<strong>[[EMAIL]]</strong>: The recipient's email in all uppercase (e.g., USER@DOMAIN.COM). [[smtpdomain]]

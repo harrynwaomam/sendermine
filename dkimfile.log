@@ -1,0 +1,12 @@
+2024-11-16 21:24:53.395638 - Email sent successfully to harrymakane01@gmail.com
+2024-11-16 21:24:53.396886 - Sleeping for 5 seconds...
+2024-11-16 21:28:48.855680 - [SUCCESS] Email sent successfully to harrymakane01@gmail.com.
+2024-11-16 21:28:48.856730 - [INFO] Sleeping for 5 seconds...
+2024-11-16 21:31:53.453120 - [SUCCESS] Email sent successfully to harrymakane01@gmail.com.
+2024-11-16 21:31:53.454742 - [INFO] Sleeping for 5 seconds...
+2024-11-17 11:46:23.726829 - Generated PEM file for venfergusona.store.
+2024-11-17 11:46:23.727304 - DKIM signing failed for sender@venfergusona.store: module 'dkim' has no attribute 'sign'
+2024-11-17 11:47:08.269041 - DKIM signing failed for sender@venfergusona.store: module 'dkim' has no attribute 'sign'
+2024-11-17 11:48:12.132673 - Generated PEM file for venfergusona.store.
+2024-11-17 11:48:12.133007 - DKIM signing failed for sender@venfergusona.store: module 'dkim' has no attribute 'sign'
+2024-11-17 11:48:34.737349 - DKIM signing failed for sender@venfergusona.store: module 'dkim' has no attribute 'sign'

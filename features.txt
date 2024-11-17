@@ -1,0 +1,63 @@
+Features List for Email Sending Script:
+
+1. Dynamic Randomizers:
+   - Supports random values from `randomizers` directory.
+   - Examples: `[[random_city]], [[random_browser]], [[random_state]]`.
+
+2. Customizers:
+   - Supports indexed values from `randomizers` directory.
+   - Examples: `[[custom_city]], [[custom_browser]], [[custom_state]]`.
+
+3. Placeholder Replacement:
+   - Advanced placeholder support:
+     - Randomized numbers: `[[random1]], [[random4]]`.
+     - Random characters: `[[char5]], [[Uchar3]]`.
+     - Sender information: `[[sender]]`.
+     - Recipient-specific data: `[[email]], [[domain]], [[user]]`.
+
+4. Dynamic Letter Selection:
+   - Specific letter selection using `specific_letter` in `config.ini`.
+   - Random letter selection from `letters` directory.
+   - Supports configurable formats: `.txt`, `.html`.
+
+5. Email Headers:
+   - `From`, `To`, `Subject`.
+   - `List-Unsubscribe` for unsubscribe handling.
+   - `Reply-To` for custom replies.
+   - `Message-ID` dynamically generated using placeholders.
+   - `X-Mailer` for software identification.
+   - `Precedence` and `X-Priority` for email categorization.
+
+6. Message Body Formatting:
+   - Supports both plain-text and HTML email formats.
+
+7. MX Record Lookup:
+   - Dynamically resolves recipient domain's MX record.
+   - Connects to the highest-priority MX server.
+
+8. Configurable Sleeping:
+   - Sleeps after sending a configured number of emails (`mails_before_sleep`).
+   - Configurable sleep duration (`sleep_seconds`).
+
+9. DKIM Signing (Optional):
+   - Dynamically loads private keys from `dkim` directory.
+   - Signs emails using the sender's domain-specific private key.
+   - Enabled/disabled via `SignEmail_With_DKim` in `config.ini`.
+
+10. Error Handling:
+   - Graceful handling of missing files or invalid configurations.
+   - Logs errors when email sending fails.
+
+11. Dynamic Sender Selection:
+   - Randomly selects sender email and name from `frommail.txt` and `fromname.txt`.
+
+12. Boundary and Message-ID Generation:
+   - Dynamically generates MIME boundaries for emails.
+   - Custom `Message-ID` with placeholders for unique identification.
+
+13. Configurable Priority and Reply Path:
+   - Configurable `X-Priority` for email importance.
+   - Configurable `Reply-To` and `Return-Path`.
+
+14. Compatibility with Configurable SMTP Hostname:
+   - Supports manual and automatic hostname resolution for SMTP connections.

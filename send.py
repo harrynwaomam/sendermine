@@ -196,8 +196,10 @@ def ensure_pem_file(sender_domain):
             try:
                 os.system(f"openssl rsa -in {txt_file} -out {pem_file}")
                 log_dkim(f"Generated PEM file for {sender_domain}.")
+                print(f"[DKIM] Generated PEM file for {sender_domain}.")
             except Exception as e:
                 log_dkim(f"Failed to generate PEM file for {sender_domain}: {e}")
+                print(f"[DKIM] Failed to generate PEM file for {sender_domain}: {e}")
         return pem_file
     return None
 
@@ -206,22 +208,26 @@ def dkim_sign_message(msg, sender_email):
     pem_file = ensure_pem_file(sender_domain)
     if not pem_file:
         log_dkim(f"No PEM file available for {sender_domain}, skipping DKIM.")
+        print(f"[DKIM] No PEM file available for {sender_domain}, skipping DKIM.")
         return None
 
     try:
         with open(pem_file, "rb") as key_file:
             private_key = key_file.read()
-        dkim_signature = dkim.sign(
+        dkim_headers = [b"from", b"to", b"subject"]
+        sig = dkim.sign(
             message=msg.as_bytes(),
             selector=b"default",
             domain=sender_domain.encode(),
             privkey=private_key,
-            include_headers=[b"from", b"to", b"subject"]
+            include_headers=dkim_headers
         )
-        log_dkim(f"DKIM signature created successfully for {sender_email}.")
-        return dkim_signature
+        #log_dkim(f"DKIM signature created successfully for {sender_email}.")
+        #print(f"[DKIM] DKIM signature created successfully for {sender_email}.")
+        return sig
     except Exception as e:
-        log_dkim(f"DKIM signing failed for {sender_email}: {e}")
+        #log_dkim(f"DKIM signing failed for {sender_email}: {e}")
+        #print(f"[DKIM] DKIM signing failed for {sender_email}: {e}")
         return None
 
 # === EMAIL SENDING ===

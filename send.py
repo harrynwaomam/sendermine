@@ -49,6 +49,7 @@ letter_format = config.get("SETTINGS", "letter_format", fallback="txt").lower()
 specific_letter = config.get("SETTINGS", "specific_letter", fallback="").strip()
 send_html_letter = config.getboolean("SETTINGS", "send_html_letter", fallback=True)
 threads_count = config.getint("SETTINGS", "threads_count", fallback=10)
+save_sent_mails = config.getboolean("SETTINGS", "save_sent_mails", fallback=True)
 
 # === LOGGING FUNCTIONS ===
 def log_dkim(message):
@@ -60,8 +61,9 @@ def log_general(message, success=True):
     print(f"{color}{datetime.now()} - {message}{Style.RESET_ALL}")
 
 def log_to_file(message, filename):
-    with open(filename, "a") as log_file:
-        log_file.write(f"{datetime.now()} - {message}\n")
+    if save_sent_mails:
+        with open(filename, "a") as log_file:
+            log_file.write(f"{datetime.now()} - {message}\n")
 
 # === HOSTNAME DETERMINATION ===
 def determine_hostname(mode, smtp_domain):

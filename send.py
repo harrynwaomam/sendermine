@@ -1,21 +1,22 @@
 import os
+import smtplib
 import dns.resolver
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.utils import formatdate
 import configparser
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
+import time
 import base64
 import dkim
 import socket
 import requests
 from colorama import Fore, Style, init
-import asyncio
-import aiosmtplib
-import ssl
-import subprocess
+import contextlib
+import threading
+from queue import Queue
 
 init(autoreset=True)
 
@@ -48,7 +49,6 @@ letter_format = config.get("SETTINGS", "letter_format", fallback="txt").lower()
 specific_letter = config.get("SETTINGS", "specific_letter", fallback="").strip()
 send_html_letter = config.getboolean("SETTINGS", "send_html_letter", fallback=True)
 threads_count = config.getint("SETTINGS", "threads_count", fallback=10)
-save_sent_mails = config.getboolean("SETTINGS", "save_sent_mails", fallback=True)
 
 # === LOGGING FUNCTIONS ===
 def log_dkim(message):
@@ -60,23 +60,20 @@ def log_general(message, success=True):
     print(f"{color}{datetime.now()} - {message}{Style.RESET_ALL}")
 
 def log_to_file(message, filename):
-    if save_sent_mails:
-        with open(filename, "a") as log_file:
-            log_file.write(f"{datetime.now()} - {message}\n")
+    with open(filename, "a") as log_file:
+        log_file.write(f"{datetime.now()} - {message}\n")
 
 # === HOSTNAME DETERMINATION ===
-async def determine_hostname(mode, smtp_domain):
+def determine_hostname(mode, smtp_domain):
     if mode == "smtp":
         return smtp_domain
     elif mode == "manual":
         return manual_hostname
     elif mode == "":
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get("https://api.ipify.org?format=text") as response:
-                    public_ip = await response.text()
-                    reverse_dns = socket.gethostbyaddr(public_ip)[0]
-                    return reverse_dns
+            public_ip = requests.get("https://api.ipify.org?format=text").text
+            reverse_dns = socket.gethostbyaddr(public_ip)[0]
+            return reverse_dns
         except Exception:
             log_general(f"Failed to resolve RDNS for IP. Defaulting to {smtp_domain}")
             return smtp_domain
@@ -202,7 +199,7 @@ def ensure_pem_file(sender_domain):
         return pem_file
     return None
 
-async def dkim_sign_message(msg, sender_email):
+def dkim_sign_message(msg, sender_email):
     sender_domain = sender_email.split('@')[1]
     pem_file = ensure_pem_file(sender_domain)
     if not pem_file:
@@ -229,26 +226,14 @@ async def dkim_sign_message(msg, sender_email):
 total_sent = 0
 total_failed = 0
 
-async def get_public_ip():
-    try:
-        result = subprocess.run(['curl', 'https://api.ipify.org'], stdout=subprocess.PIPE)
-        public_ip = result.stdout.decode().strip()
-        return public_ip
-    except Exception as e:
-        log_general(f"Failed to obtain public IP: {e}", success=False)
-        return "Unknown"
-
-async def send_email(sender_email, sender_name, recipient_email, subject, body, recipient_index, total_victims):
+def send_email(sender_email, sender_name, recipient_email, subject, body, recipient_index, total_victims):
     global total_sent, total_failed
     try:
-        public_ip = await get_public_ip()
-        log_general(f"Public IP: {public_ip}")
-
         recipient_domain = recipient_email.split('@')[1]
         mx_records = dns.resolver.resolve(recipient_domain, 'MX')
         mx_record = sorted(mx_records, key=lambda r: r.preference)[0].exchange.to_text()
 
-        hostname = await determine_hostname(hostname_mode, sender_email.split('@')[1])
+        hostname = determine_hostname(hostname_mode, sender_email.split('@')[1])
         helo = replace_placeholders(helo_template, recipient_email, sender_email, recipient_index)
 
         msg = MIMEMultipart()
@@ -267,24 +252,20 @@ async def send_email(sender_email, sender_name, recipient_email, subject, body, 
         msg.attach(MIMEText(body, "html" if send_html_letter else "plain"))
 
         if dkim_enabled:
-            dkim_signature = await dkim_sign_message(msg, sender_email)
+            dkim_signature = dkim_sign_message(msg, sender_email)
             if dkim_signature:
                 msg["DKIM-Signature"] = dkim_signature.decode()
 
-        context = ssl.create_default_context()
-        context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
-
-        async with aiosmtplib.SMTP(hostname=mx_record, port=25, timeout=config.getint("SETTINGS", "email_timeout", fallback=20), tls_context=context) as server:
-            await server.connect()
-            await server.ehlo(helo)
-            await server.mail(replace_placeholders(return_path, recipient_email, sender_email, recipient_index))
-            await server.rcpt(recipient_email)
-            await server.data(msg.as_string())
-            log_general(f"Email sent successfully to {recipient_email} [{recipient_index + 1}/{total_victims}].")
-            log_to_file(f"Email sent successfully to {recipient_email} [{recipient_index + 1}/{total_victims}].", "success_send.txt")
-            total_sent += 1
-            return
+        with contextlib.suppress(Exception):
+            with smtplib.SMTP(mx_record, 25, local_hostname=hostname, timeout=config.getint("SETTINGS", "email_timeout", fallback=20)) as server:
+                server.helo(helo)
+                server.mail(replace_placeholders(return_path, recipient_email, sender_email, recipient_index))
+                server.rcpt(recipient_email)
+                server.data(msg.as_string())
+                log_general(f"Email sent successfully to {recipient_email} [{recipient_index + 1}/{total_victims}].")
+                log_to_file(f"Email sent successfully to {recipient_email} [{recipient_index + 1}/{total_victims}].", "success_send.txt")
+                total_sent += 1
+                return
 
         log_general(f"Failed to send email to {recipient_email} [{recipient_index + 1}/{total_victims}].", success=False)
         log_to_file(f"Failed to send email to {recipient_email} [{recipient_index + 1}/{total_victims}].", "failed_send.txt")
@@ -295,19 +276,17 @@ async def send_email(sender_email, sender_name, recipient_email, subject, body, 
         log_general(f"Failed to send email to {recipient_email} [{recipient_index + 1}/{total_victims}]: {e}", success=False)
         total_failed += 1
 
-# === ASYNCIO HANDLING ===
-async def worker(queue, total_victims):
+# === THREAD HANDLING ===
+def worker(queue, total_victims):
     while True:
-        item = await queue.get()
+        item = queue.get()
         if item is None:
             break
-        await send_email(*item, total_victims)
+        send_email(*item, total_victims)
         queue.task_done()
 
-async def main():
-    public_ip = await get_public_ip()
-    print(f"Public IP: {public_ip}")
-
+# === MAIN FUNCTION ===
+def main():
     start_time = datetime.now()
 
     victims = load_file_lines(victims_file)
@@ -321,12 +300,13 @@ async def main():
         return
 
     total_victims = len(victims)
-    queue = asyncio.Queue()
+    queue = Queue()
 
-    tasks = []
+    threads = []
     for _ in range(threads_count):
-        task = asyncio.create_task(worker(queue, total_victims))
-        tasks.append(task)
+        thread = threading.Thread(target=worker, args=(queue, total_victims))
+        thread.start()
+        threads.append(thread)
 
     for i, victim in enumerate(victims):
         from_email = get_random_line(frommail_file)
@@ -338,17 +318,18 @@ async def main():
             return
 
         personalized_body = replace_placeholders(email_body, victim, from_email, i)
-        await queue.put((from_email, from_name, victim, subject, personalized_body, i))
+        queue.put((from_email, from_name, victim, subject, personalized_body, i))
 
         if sleep_enabled and (i + 1) % mails_before_sleep == 0:
             log_general(f"Sleeping for {sleep_seconds} seconds...")
-            await asyncio.sleep(sleep_seconds)
+            time.sleep(sleep_seconds)
 
-    await queue.join()
+    queue.join()
 
     for _ in range(threads_count):
-        await queue.put(None)
-    await asyncio.gather(*tasks)
+        queue.put(None)
+    for thread in threads:
+        thread.join()
 
     end_time = datetime.now()
     total_time = end_time - start_time
@@ -360,4 +341,4 @@ async def main():
     log_general(f"Total Time Taken: {int(days)} days, {int(hours)} hours, {int(minutes)} minutes, {int(seconds)} seconds")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

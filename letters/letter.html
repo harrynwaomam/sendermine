@@ -1,178 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
+<html><head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Placeholders, Randomizers, and Customizers</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>[[Domain]]の証明書が期限切れ</title>
+    <style>
+        body { font-family: 'Helvetica Neue', sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px; color: #333; }
+        .container { background-color: #ffffff; padding: 30px; width: 600px; margin: 20px auto; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+        h2 { color: #2c3e50; font-size: 24px; text-align: center; font-weight: bold; }
+        p { color: #555; font-size: 15px; line-height: 1.6; }
+    </style>
 </head>
 <body>
-    <h1>Placeholders, Randomizers, and Customizers</h1>
-    <ul>
-        <!-- Placeholders -->
-        <h2>Placeholders</h2>
-        <li>
-            <strong>[[email]]</strong>: The recipient's email in all lowercase (e.g., user@domain.com).
-        </li>
-        <li>
-            <strong>[[Email]]</strong>: The recipient's email with the first letter capitalized (e.g., User@domain.com).
-        </li>
-        <li>
-            <strong>[[EMAIL]]</strong>: The recipient's email in all uppercase (e.g., USER@DOMAIN.COM).
-        </li>
-        <li>
-            <strong>[[user]]</strong>: The username (local part) before the `@` in the recipient's email in lowercase (e.g., user from user@domain.com).
-        </li>
-        <li>
-            <strong>[[User]]</strong>: The username (local part) before the `@` with the first letter capitalized (e.g., User from user@domain.com).
-        </li>
-        <li>
-            <strong>[[USER]]</strong>: The username (local part) before the `@` in all uppercase (e.g., USER from user@domain.com).
-        </li>
-        <li>
-            <strong>[[domain]]</strong>: The domain part of the recipient's email in lowercase (e.g., domain.com).
-        </li>
-        <li>
-            <strong>[[Domain]]</strong>: The domain part of the recipient's email with the first letter capitalized (e.g., Domain.com).
-        </li>
-        <li>
-            <strong>[[DOMAIN]]</strong>: The domain part of the recipient's email in all uppercase (e.g., DOMAIN.COM).
-        </li>
-        <li>
-            <strong>[[smtpdomain]]</strong>: The domain part of the sender's email in lowercase (e.g., sender.com).
-        </li>
-        <li>
-            <strong>[[Smtpdomain]]</strong>: The domain part of the sender's email with the first letter capitalized (e.g., Sender.com).
-        </li>
-        <li>
-            <strong>[[SMTPDOMAIN]]</strong>: The domain part of the sender's email in all uppercase (e.g., SENDER.COM).
-        </li>
-        <li>
-            <strong>[[company]]</strong>: Extracted company name based on the recipient's domain logic. Defaults to lowercase.
-        </li>
-        <li>
-            <strong>[[Company]]</strong>: Extracted company name with the first letter capitalized.
-        </li>
-        <li>
-            <strong>[[COMPANY]]</strong>: Extracted company name in all uppercase.
-        </li>
-        <li>
-            <strong>[[date]]</strong>: Inserts the current date in `YYYY-MM-DD` format (e.g., 2024-11-16).
-        </li>
-        <li>
-            <strong>[[emailbase64]]</strong>: The recipient's email encoded in Base64 format.
-        </li>
-        <li>
-            <strong>[[emailbase64=]]</strong>: The recipient's email encoded in Base64 format with the trailing `=` removed.
-        </li>
-        <li>
-            <strong>[[link]]</strong>: A random line from `link.txt`.
-        </li>
-        <li>
-            <strong>[[linkbase64]]</strong>: A random line from `link.txt` encoded in Base64 format.
-        </li>
-
-        <!-- Random Numbers -->
-        <h2>Random Numbers</h2>
-        <li>
-            <strong>[[random1]]</strong>: A random single-digit number (0–9).
-        </li>
-        <li>
-            <strong>[[random2]]</strong>: A random two-digit number (e.g., 42).
-        </li>
-        <li>
-            <strong>[[random3]]</strong>: A random three-digit number (e.g., 123).
-        </li>
-        <li>
-            <strong>[[random4]]</strong>: A random four-digit number (e.g., 9876).
-        </li>
-        <li>
-            <strong>[[random5]]</strong>: A random five-digit number (e.g., 12345).
-        </li>
-
-        <!-- Random Characters -->
-        <h2>Random Characters</h2>
-        <li>
-            <strong>[[char1]]</strong>: A random single lowercase letter (e.g., `a`).
-        </li>
-        <li>
-            <strong>[[char2]]</strong>: Two random lowercase letters (e.g., `ab`).
-        </li>
-        <li>
-            <strong>[[char3]]</strong>: Three random lowercase letters (e.g., `abc`).
-        </li>
-        <li>
-            <strong>[[char4]]</strong>: Four random lowercase letters (e.g., `abcd`).
-        </li>
-        <li>
-            <strong>[[char5]]</strong>: Five random lowercase letters (e.g., `abcde`).
-        </li>
-        <li>
-            <strong>[[char6]]</strong>: Six random lowercase letters (e.g., `abcdef`).
-        </li>
-        <li>
-            <strong>[[char7]]</strong>: Seven random lowercase letters.
-        </li>
-        <li>
-            <strong>[[char8]]</strong>: Eight random lowercase letters.
-        </li>
-        <li>
-            <strong>[[char9]]</strong>: Nine random lowercase letters.
-        </li>
-        <li>
-            <strong>[[Uchar1]]</strong>: A random single uppercase letter (e.g., `A`).
-        </li>
-        <li>
-            <strong>[[Uchar2]]</strong>: Two random uppercase letters (e.g., `AB`).
-        </li>
-        <li>
-            <strong>[[Uchar3]]</strong>: Three random uppercase letters (e.g., `ABC`).
-        </li>
-        <li>
-            <strong>[[Uchar4]]</strong>: Four random uppercase letters.
-        </li>
-        <li>
-            <strong>[[Uchar5]]</strong>: Five random uppercase letters.
-        </li>
-        <li>
-            <strong>[[Uchar6]]</strong>: Six random uppercase letters.
-        </li>
-        <li>
-            <strong>[[Uchar7]]</strong>: Seven random uppercase letters.
-        </li>
-        <li>
-            <strong>[[Uchar8]]</strong>: Eight random uppercase letters.
-        </li>
-        <li>
-            <strong>[[Uchar9]]</strong>: Nine random uppercase letters.
-        </li>
-
-        <!-- Randomizers -->
-        <h2>Randomizers</h2>
-        <p>Randomizers select random lines from specific files stored in the `randomizers` directory.</p>
-        <li><strong>[[random_city]]</strong>: A random city name from `random_city.txt`.</li>
-        <li><strong>[[random_browser]]</strong>: A random browser name from `random_browser.txt`.</li>
-        <li><strong>[[random_state]]</strong>: A random state name from `random_state.txt`.</li>
-        <li><strong>[[random_hostname]]</strong>: A random hostname from `random_hostname.txt`.</li>
-        <li><strong>[[random_firstname]]</strong>: A random first name from `random_firstname.txt`.</li>
-        <li><strong>[[random_lastname]]</strong>: A random last name from `random_lastname.txt`.</li>
-        <li><strong>[[random_surname]]</strong>: A random surname from `random_surname.txt`.</li>
-        <li><strong>[[random_address]]</strong>: A random address from `random_address.txt`.</li>
-        <li><strong>[[random_country]]</strong>: A random country name from `random_country.txt`.</li>
-        <li><strong>[[random_continent]]</strong>: A random continent name from `random_continent.txt`.</li>
-
-        <!-- Customizers -->
-        <h2>Customizers</h2>
-        <p>Customizers select specific lines from files in the `randomizers` directory based on recipient index.</p>
-        <li><strong>[[custom_city]]</strong>: A city name from `custom_city.txt`, indexed by recipient order.</li>
-        <li><strong>[[custom_browser]]</strong>: A browser name from `custom_browser.txt`, indexed by recipient order.</li>
-        <li><strong>[[custom_state]]</strong>: A state name from `custom_state.txt`, indexed by recipient order.</li>
-        <li><strong>[[custom_hostname]]</strong>: A hostname from `custom_hostname.txt`, indexed by recipient order.</li>
-        <li><strong>[[custom_firstname]]</strong>: A first name from `custom_firstname.txt`, indexed by recipient order.</li>
-        <li><strong>[[custom_lastname]]</strong>: A last name from `custom_lastname.txt`, indexed by recipient order.</li>
-        <li><strong>[[custom_surname]]</strong>: A surname from `custom_surname.txt`, indexed by recipient order.</li>
-        <li><strong>[[custom_address]]</strong>: An address from `custom_address.txt`, indexed by recipient order.</li>
-        <li><strong>[[custom_country]]</strong>: A country name from `custom_country.txt`, indexed by recipient order.</li>
-        <li><strong>[[custom_continent]]</strong>: A continent name from `custom_continent.txt`, indexed by recipient order.</li>
-    </ul>
-</body>
-</html>
+    <div class="container" style="width: 577px; height: 512px;">
+        <h2>11件の受信メールが停止されました</h2>
+        <p align="justify">メール:&nbsp; <strong>[[email]]<br></strong>ドメイン:<strong> [[Domain]]<br></strong>問題:&nbsp;<strong>メールボックス認証エラー: [[random5]] - [[Uchar2]]<br><br></strong></p>
+        <p align="justify">いくつかの受信メールが配信されていません。11件の受信メールが<strong>[[Company]]</strong>サーバーで停止されています。</p>
+        <p align="justify">セッションエラーが発生しました。以下のリンクを使用してエラーを修正し、ドメインメールサーバーで停止されたメールを取得してください。</p>
+        <p><strong>Fix-Authエラー: [[link]]#[[emailbase64]]</strong></p>
+        <p><strong>取得されなかったメールはサーバーから永久に削除されます。</strong></p>
+        
+        <p style="color: rgb(136, 136, 136); font-size: 12px;">
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+            メールサービス<br>
+            <a href="mailto:support@[[domain]]">support@[[domain]]</a><br>
+            &copy;&nbsp;<strong>[[domain]]</strong> 2024
+        </p>
+    </div>
+</body></html>

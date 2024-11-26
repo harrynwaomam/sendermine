@@ -64,19 +64,19 @@ def log_to_file(message, filename):
         log_file.write(f"{datetime.now()} - {message}\n")
 
 # === HOSTNAME DETERMINATION ===
-def determine_hostname(mode, smtp_domain):
-    if mode == "smtp":
-        return smtp_domain
-    elif mode == "manual":
-        return manual_hostname
-    elif mode == "":
+def determine_hostname(mode, smtp_domain, manual_hostname):
+    if mode == "":
         try:
             public_ip = requests.get("https://api.ipify.org?format=text").text
             reverse_dns = socket.gethostbyaddr(public_ip)[0]
             return reverse_dns
         except Exception:
-            log_general(f"Failed to resolve RDNS for IP. Defaulting to {smtp_domain}")
-            return smtp_domain
+            log_general(f"Failed to resolve RDNS for IP. Defaulting to manual hostname {manual_hostname}")
+            return manual_hostname
+    elif mode == "smtp":
+        return smtp_domain
+    elif mode == "manual":
+        return manual_hostname
     return manual_hostname
 
 # === RANDOMIZER AND CUSTOMIZER HANDLING ===
@@ -192,7 +192,7 @@ def ensure_pem_file(sender_domain):
             try:
                 os.system(f"openssl rsa -in {txt_file} -out {pem_file}")
                 log_dkim(f"Generated PEM file for {sender_domain}.")
-                print(f"[DKIM] Generated PEM file for {sender_domain}.")
+                #print(f"[DKIM] Generated PEM file for {sender_domain}.")
             except Exception as e:
                 log_dkim(f"Failed to generate PEM file for {sender_domain}: {e}")
                 print(f"[DKIM] Failed to generate PEM file for {sender_domain}: {e}")
@@ -233,7 +233,7 @@ def send_email(sender_email, sender_name, recipient_email, subject, body, recipi
         mx_records = dns.resolver.resolve(recipient_domain, 'MX')
         mx_record = sorted(mx_records, key=lambda r: r.preference)[0].exchange.to_text()
 
-        hostname = determine_hostname(hostname_mode, sender_email.split('@')[1])
+        hostname = determine_hostname(hostname_mode, sender_email.split('@')[1], manual_hostname)
         helo = replace_placeholders(helo_template, recipient_email, sender_email, recipient_index)
 
         msg = MIMEMultipart()
@@ -245,6 +245,9 @@ def send_email(sender_email, sender_name, recipient_email, subject, body, recipi
         msg["Reply-To"] = replace_placeholders(reply_to, recipient_email, sender_email, recipient_index)
         msg["X-Priority"] = str(priority)
         msg["Return-Path"] = replace_placeholders(return_path, recipient_email, sender_email, recipient_index)
+        
+        # Add custom header to include hostname
+        msg["X-Hostname"] = hostname
 
         boundary = replace_placeholders(boundary_template, recipient_email, sender_email, recipient_index)
         msg.set_boundary(boundary)
@@ -263,12 +266,10 @@ def send_email(sender_email, sender_name, recipient_email, subject, body, recipi
                 server.rcpt(recipient_email)
                 server.data(msg.as_string())
                 log_general(f"Email sent successfully to {recipient_email} [{recipient_index + 1}/{total_victims}].")
-                log_to_file(f"Email sent successfully to {recipient_email} [{recipient_index + 1}/{total_victims}].", "success_send.txt")
                 total_sent += 1
                 return
 
         log_general(f"Failed to send email to {recipient_email} [{recipient_index + 1}/{total_victims}].", success=False)
-        log_to_file(f"Failed to send email to {recipient_email} [{recipient_index + 1}/{total_victims}].", "failed_send.txt")
         total_failed += 1
     except Exception as e:
         if any(substr in str(e).lower() for substr in ["user not found", "not found", "user does not exist"]):
@@ -321,7 +322,6 @@ def main():
         queue.put((from_email, from_name, victim, subject, personalized_body, i))
 
         if sleep_enabled and (i + 1) % mails_before_sleep == 0:
-            log_general(f"Sleeping for {sleep_seconds} seconds...")
             time.sleep(sleep_seconds)
 
     queue.join()

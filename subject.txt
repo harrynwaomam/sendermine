@@ -1,1 +1,22 @@
-<strong>[[EMAIL]]</strong>: The recipient's email in all uppercase (e.g., USER@DOMAIN.COM). [[smtpdomain]]
+Here are the translated texts with the original content inside the brackets preserved:
+
+- アクションが必要: [[Company]] 11件の保留中のメール通知
+- 重要: [[Company]] メール配信の問題 - 11件のメールが保留中です
+- [[Company]] 警告: 11件の保留中のメールを解決してください
+- [[Company]] 通知: メールボックス認証エラーを修正してください
+- [[Company]]: 即時対応が必要な11件の未配信メール
+- [[Company]]: 今すぐ11件の保留中のメールを取得してください
+- [[Company]]: 重大 - 11件のメールが配信されませんでした
+- [[Company]]: 11件の保留中のメールの修正が必要です
+- [[Company]]: 重要 - 11件の保留中のメール、対応が必要です
+- [[Company]]: 認証エラーを解決してメールを取得してください
+- [[Company]]: メール配信警告 - 11件の保留中のメール
+- [[Company]]: 11件のメールが保留中、アクションが必要です
+- [[Company]]: 保留中のメール通知
+- [[Company]]: メールボックスの問題を修正してメールを取得してください
+- [[Company]]: 保留中のメール警告
+- [[Company]]: 11件のメールがアクションを待っています
+- [[Company]]: メール保留の問題を解決してください
+- [[Company]]: メール配信のためにアクションが必要です
+- [[Company]]: 重要なメール通知
+- [[Company]]: メール保留通知

@@ -1,24 +1,34 @@
 import requests
 import socket
+import os
 
-def get_public_ip_and_reverse_dns():
+def get_rdns():
     try:
-        # Fetch the public IP
-        response = requests.get("https://api.ipify.org?format=text")
-        if response.status_code == 200:
-            public_ip = response.text
-            print(f"Your current public IP address is: {public_ip}")
-            
-            # Perform reverse DNS lookup
-            try:
-                reverse_dns = socket.gethostbyaddr(public_ip)[0]
-                print(f"Reverse DNS record for {public_ip}: {reverse_dns}")
-            except socket.herror:
-                print(f"Reverse DNS lookup failed for {public_ip}.")
-        else:
-            print(f"Failed to retrieve IP address. Status code: {response.status_code}")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+        # Get the public IP address
+        response = requests.get('https://api.ipify.org')
+        public_ip = response.text.strip()
 
-if __name__ == "__main__":
-    get_public_ip_and_reverse_dns()
+        # Resolve the reverse DNS
+        rdns = socket.gethostbyaddr(public_ip)[0]
+        return rdns
+    except Exception as e:
+        print(f"Failed to obtain RDNS: {e}")
+        return None
+
+def write_rdns_to_file(rdns):
+    resources_dir = "resources"
+    if not os.path.exists(resources_dir):
+        os.makedirs(resources_dir)
+    
+    file_path = os.path.join(resources_dir, "dynamic_hostname.txt")
+    try:
+        with open(file_path, 'w') as file:
+            file.write(rdns)
+        print(f"RDNS value written to {file_path}")
+    except Exception as e:
+        print(f"Failed to write RDNS to file: {e}")
+
+# Run the functions
+rdns = get_rdns()
+if rdns:
+    write_rdns_to_file(rdns)

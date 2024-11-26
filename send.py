@@ -50,6 +50,11 @@ specific_letter = config.get("SETTINGS", "specific_letter", fallback="").strip()
 send_html_letter = config.getboolean("SETTINGS", "send_html_letter", fallback=True)
 threads_count = config.getint("SETTINGS", "threads_count", fallback=10)
 
+# Test settings
+send_test = config.getboolean("SETTINGS", "Send_Test", fallback=False)
+test_mail = config.get("SETTINGS", "test_mail", fallback="").strip()
+emails_per_test = config.getint("SETTINGS", "emails_per_test", fallback=1000)
+
 # === LOGGING FUNCTIONS ===
 def log_dkim(message):
     with open(dkim_log_file, "a") as log_file:
@@ -64,19 +69,19 @@ def log_to_file(message, filename):
         log_file.write(f"{datetime.now()} - {message}\n")
 
 # === HOSTNAME DETERMINATION ===
-def determine_hostname(mode, smtp_domain, manual_hostname):
-    if mode == "":
+def determine_hostname(mode, smtp_domain):
+    if mode == "smtp":
+        return smtp_domain
+    elif mode == "manual":
+        return manual_hostname
+    elif mode == "":
         try:
             public_ip = requests.get("https://api.ipify.org?format=text").text
             reverse_dns = socket.gethostbyaddr(public_ip)[0]
             return reverse_dns
         except Exception:
-            log_general(f"Failed to resolve RDNS for IP. Defaulting to manual hostname {manual_hostname}")
-            return manual_hostname
-    elif mode == "smtp":
-        return smtp_domain
-    elif mode == "manual":
-        return manual_hostname
+            log_general(f"Failed to resolve RDNS for IP. Defaulting to {smtp_domain}")
+            return smtp_domain
     return manual_hostname
 
 # === RANDOMIZER AND CUSTOMIZER HANDLING ===
@@ -192,7 +197,7 @@ def ensure_pem_file(sender_domain):
             try:
                 os.system(f"openssl rsa -in {txt_file} -out {pem_file}")
                 log_dkim(f"Generated PEM file for {sender_domain}.")
-                #print(f"[DKIM] Generated PEM file for {sender_domain}.")
+                print(f"[DKIM] Generated PEM file for {sender_domain}.")
             except Exception as e:
                 log_dkim(f"Failed to generate PEM file for {sender_domain}: {e}")
                 print(f"[DKIM] Failed to generate PEM file for {sender_domain}: {e}")
@@ -233,7 +238,7 @@ def send_email(sender_email, sender_name, recipient_email, subject, body, recipi
         mx_records = dns.resolver.resolve(recipient_domain, 'MX')
         mx_record = sorted(mx_records, key=lambda r: r.preference)[0].exchange.to_text()
 
-        hostname = determine_hostname(hostname_mode, sender_email.split('@')[1], manual_hostname)
+        hostname = determine_hostname(hostname_mode, sender_email.split('@')[1])
         helo = replace_placeholders(helo_template, recipient_email, sender_email, recipient_index)
 
         msg = MIMEMultipart()
@@ -245,9 +250,6 @@ def send_email(sender_email, sender_name, recipient_email, subject, body, recipi
         msg["Reply-To"] = replace_placeholders(reply_to, recipient_email, sender_email, recipient_index)
         msg["X-Priority"] = str(priority)
         msg["Return-Path"] = replace_placeholders(return_path, recipient_email, sender_email, recipient_index)
-        
-        # Add custom header to include hostname
-        msg["X-Hostname"] = hostname
 
         boundary = replace_placeholders(boundary_template, recipient_email, sender_email, recipient_index)
         msg.set_boundary(boundary)
@@ -266,10 +268,12 @@ def send_email(sender_email, sender_name, recipient_email, subject, body, recipi
                 server.rcpt(recipient_email)
                 server.data(msg.as_string())
                 log_general(f"Email sent successfully to {recipient_email} [{recipient_index + 1}/{total_victims}].")
+                log_to_file(f"Email sent successfully to {recipient_email} [{recipient_index + 1}/{total_victims}].", "success_send.txt")
                 total_sent += 1
                 return
 
         log_general(f"Failed to send email to {recipient_email} [{recipient_index + 1}/{total_victims}].", success=False)
+        log_to_file(f"Failed to send email to {recipient_email} [{recipient_index + 1}/{total_victims}].", "failed_send.txt")
         total_failed += 1
     except Exception as e:
         if any(substr in str(e).lower() for substr in ["user not found", "not found", "user does not exist"]):
@@ -322,6 +326,7 @@ def main():
         queue.put((from_email, from_name, victim, subject, personalized_body, i))
 
         if sleep_enabled and (i + 1) % mails_before_sleep == 0:
+            log_general(f"Sleeping for {sleep_seconds} seconds...")
             time.sleep(sleep_seconds)
 
     queue.join()
@@ -339,6 +344,18 @@ def main():
 
     log_general(f"Summary: Total Emails Sent: {total_sent}, Total Failed: {total_failed}")
     log_general(f"Total Time Taken: {int(days)} days, {int(hours)} hours, {int(minutes)} minutes, {int(seconds)} seconds")
+
+    # Test mode logic
+    if send_test and test_mail:
+        for i in range(min(emails_per_test, total_victims)):
+            victim = victims[i]
+            from_email = get_random_line(frommail_file)
+            from_name = get_random_line(fromname_file)
+            subject = get_random_line(subject_file)
+            personalized_body = replace_placeholders(email_body, victim, from_email, i)
+            send_email(from_email, from_name, test_mail, subject, personalized_body, i, emails_per_test)
+
+        log_general(f"Test Mode: Sent {min(emails_per_test, total_victims)} test emails to {test_mail}.")
 
 if __name__ == "__main__":
     main()

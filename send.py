@@ -208,13 +208,14 @@ def dkim_sign_message(msg, sender_email):
     try:
         with open(pem_file, "rb") as key_file:
             private_key = key_file.read()
-        dkim_headers = [b"from", b"to", b"subject"]
+
+        # Explicitly specify the headers in the h= parameter
         sig = dkim.sign(
             message=msg.as_bytes(),
             selector=b"default",
             domain=sender_domain.encode(),
             privkey=private_key,
-            include_headers=dkim_headers
+            include_headers=[b"Content-Type", b"MIME-Version", b"Message-ID", b"From", b"To", b"Date", b"Subject", b"Reply-To"]
         )
         return sig
     except Exception as e:

@@ -184,6 +184,7 @@ def replace_placeholders(text, email, sender_email, recipient_index):
 
     return re.sub(r"\[\[(.*?)\]\]", lambda m: replacements.get(m.group(1), f"[[{m.group(1)}]]"), text)
 
+
 # === DKIM HANDLING ===
 def ensure_pem_file(sender_domain):
     txt_file = os.path.join(dkim_folder, f"{sender_domain}.txt")
@@ -217,11 +218,19 @@ def dkim_sign_message(msg, sender_email):
             privkey=private_key,
             include_headers=[b"Content-Type", b"MIME-Version", b"Message-ID", b"From", b"To", b"Date", b"Subject", b"Reply-To"]
         )
-        return sig
+        
+        # Decode the signature to a string
+        sig_str = sig.decode()
+
+        # Modify the h= header to use proper casing and close with semicolon
+        headers = [b"Content-Type", b"MIME-Version", b"Message-ID", b"From", b"To", b"Date", b"Subject", b"Reply-To"]
+        header_str = ':'.join(header.decode() for header in headers) + ';'
+        sig_str = re.sub(r'h=([^;]+);', f'h={header_str}', sig_str)
+
+        return sig_str.encode()
     except Exception as e:
         log_dkim(f"Failed to sign message for {sender_domain}: {e}")
         return None
-
 # === EMAIL SENDING ===
 total_sent = 0
 total_failed = 0

@@ -217,7 +217,19 @@ def dkim_sign_message(msg, sender_email):
             privkey=private_key,
             include_headers=[b"Content-Type", b"MIME-Version", b"Message-ID", b"From", b"To", b"Date", b"Subject", b"Reply-To"]
         )
-        return sig
+
+        # Decode the signature to a string
+        sig_str = sig.decode()
+
+        # Ensure correct padding for the bh header
+        bh_match = re.search(r'bh=([^;]+);', sig_str)
+        if bh_match:
+            bh_value = bh_match.group(1)
+            # Fix padding issue
+            proper_bh_value = base64.b64encode(base64.b64decode(bh_value + '==')).decode()
+            sig_str = sig_str.replace(bh_value, proper_bh_value)
+
+        return sig_str.encode()
     except Exception as e:
         log_dkim(f"Failed to sign message for {sender_domain}: {e}")
         return None

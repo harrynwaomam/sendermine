@@ -49,6 +49,7 @@ letter_format = config.get("SETTINGS", "letter_format", fallback="txt").lower()
 specific_letter = config.get("SETTINGS", "specific_letter", fallback="").strip()
 send_html_letter = config.getboolean("SETTINGS", "send_html_letter", fallback=True)
 threads_count = config.getint("SETTINGS", "threads_count", fallback=10)
+batch_size = config.getint("SETTINGS", "batch_size", fallback=100)
 
 # === LOGGING FUNCTIONS ===
 def log_dkim(message):
@@ -224,13 +225,9 @@ def dkim_sign_message(msg, sender_email):
 total_sent = 0
 total_failed = 0
 
-def send_email(sender_email, sender_name, recipient_email, subject, body, recipient_index, total_victims):
+def send_email(server, sender_email, sender_name, recipient_email, subject, body, recipient_index, total_victims):
     global total_sent, total_failed
     try:
-        recipient_domain = recipient_email.split('@')[1]
-        mx_records = dns.resolver.resolve(recipient_domain, 'MX')
-        mx_record = sorted(mx_records, key=lambda r: r.preference)[0].exchange.to_text()
-
         hostname = determine_hostname(hostname_mode, sender_email.split('@')[1], manual_hostname)
         helo = replace_placeholders(helo_template, recipient_email, sender_email, recipient_index)
 
@@ -243,8 +240,6 @@ def send_email(sender_email, sender_name, recipient_email, subject, body, recipi
         msg["Reply-To"] = replace_placeholders(reply_to, recipient_email, sender_email, recipient_index)
         msg["X-Priority"] = str(priority)
         msg["Return-Path"] = replace_placeholders(return_path, recipient_email, sender_email, recipient_index)
-        
-        # Add custom header to include hostname
         msg["X-Hostname"] = hostname
 
         boundary = replace_placeholders(boundary_template, recipient_email, sender_email, recipient_index)
@@ -258,14 +253,13 @@ def send_email(sender_email, sender_name, recipient_email, subject, body, recipi
                 msg["DKIM-Signature"] = dkim_signature.decode()
 
         with contextlib.suppress(Exception):
-            with smtplib.SMTP(mx_record, 25, local_hostname=hostname, timeout=config.getint("SETTINGS", "email_timeout", fallback=20)) as server:
-                server.helo(helo)
-                server.mail(replace_placeholders(return_path, recipient_email, sender_email, recipient_index))
-                server.rcpt(recipient_email)
-                server.data(msg.as_string())
-                log_general(f"Email sent successfully to {recipient_email} [{recipient_index + 1}/{total_victims}].")
-                total_sent += 1
-                return
+            server.helo(helo)
+            server.mail(replace_placeholders(return_path, recipient_email, sender_email, recipient_index))
+            server.rcpt(recipient_email)
+            server.data(msg.as_string())
+            log_general(f"Email sent successfully to {recipient_email} [{recipient_index + 1}/{total_victims}].")
+            total_sent += 1
+            return
 
         log_general(f"Failed to send email to {recipient_email} [{recipient_index + 1}/{total_victims}].", success=False)
         total_failed += 1
@@ -276,13 +270,17 @@ def send_email(sender_email, sender_name, recipient_email, subject, body, recipi
         total_failed += 1
 
 # === THREAD HANDLING ===
-def worker(queue, total_victims):
-    while True:
-        item = queue.get()
-        if item is None:
-            break
-        send_email(*item, total_victims)
-        queue.task_done()
+def worker(queue, total_victims, mx_record):
+    try:
+        with smtplib.SMTP(mx_record, 25, local_hostname=determine_hostname(hostname_mode, "", manual_hostname), timeout=config.getint("SETTINGS", "email_timeout", fallback=20)) as server:
+            while True:
+                item = queue.get()
+                if item is None:
+                    break
+                send_email(server, *item, total_victims)
+                queue.task_done()
+    except Exception as e:
+        log_general(f"Failed to create persistent SMTP connection: {e}", success=False)
 
 # === MAIN FUNCTION ===
 def main():
@@ -301,13 +299,12 @@ def main():
     total_victims = len(victims)
     queue = Queue()
 
-    threads = []
-    for _ in range(threads_count):
-        thread = threading.Thread(target=worker, args=(queue, total_victims))
-        thread.start()
-        threads.append(thread)
-
+    mx_records = {}
     for i, victim in enumerate(victims):
+        recipient_domain = victim.split('@')[1]
+        if recipient_domain not in mx_records:
+            mx_records[recipient_domain] = sorted(dns.resolver.resolve(recipient_domain, 'MX'), key=lambda r: r.preference)[0].exchange.to_text()
+
         from_email = get_random_line(frommail_file)
         from_name = get_random_line(fromname_file)
         subject = get_random_line(subject_file)
@@ -322,12 +319,23 @@ def main():
         if sleep_enabled and (i + 1) % mails_before_sleep == 0:
             time.sleep(sleep_seconds)
 
-    queue.join()
+        # Check if we have reached the batch size
+        if (i + 1) % batch_size == 0 or (i + 1) == total_victims:
+            threads = []
+            for domain, mx_record in mx_records.items():
+                thread = threading.Thread(target=worker, args=(queue, total_victims, mx_record))
+                thread.start()
+                threads.append(thread)
 
-    for _ in range(threads_count):
-        queue.put(None)
-    for thread in threads:
-        thread.join()
+            queue.join()
+
+            for _ in range(threads_count):
+                queue.put(None)
+            for thread in threads:
+                thread.join()
+
+            # Clear the queue for the next batch
+            queue = Queue()
 
     end_time = datetime.now()
     total_time = end_time - start_time
